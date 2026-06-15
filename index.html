@@ -27,9 +27,18 @@
 
 <body class="text-center align-middle">
     <h2>네즈밍 강화하기</h2>
-    <div id="rec" class="align-middle"></div>
+    <div id="topScreen" class="row justify-content-center">
+        <div class="col-3">
+            <div id="rec" class="align-middle"></div>
+            <div id="logged"></div>
+        </div>
+        <div class="col-3">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#shopModal">
+                상점
+            </button>
+        </div>
+    </div>
     <div id="mainScreen">
-        <div id="logged"></div>
         <div style="display: flex; justify-content: center;">
             <img id="image" style="border: 1px black solid">
             <div class="align-middle" style="align-content: center; width: 20vw;">
@@ -37,7 +46,7 @@
                 <div id="perc" class="align-middle"></div>
                 <div id="revPerc" class="align-middle"></div>
                 <div>
-                    <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#qteBar"
+                    <button id="openQte" class="btn btn-primary disabled" type="button" data-bs-toggle="collapse" data-bs-target="#qteBar"
                     aria-expanded="false" aria-controls="qteBar">
                     할 수 있나?
                     </button>
@@ -57,6 +66,50 @@
                 
                 <button class="btn btn-success" onclick="setRandom()">강화</button>
                 <button class="btn btn-danger m-1" onclick="reset()">초기화</button>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="shopModal" tabindex="-1" aria-labelledby="shopModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="shopModalLabel">일단 상점</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <span>강화 실패시 치즈 획득</span>
+                    <div id="cheeze">cheeze</div>
+                    <div>
+                        <div>
+                            <span>
+                                하락 방어권
+                            </span>
+                            <button onclick="buyItem('defend',1000)">1000</button>
+                            <span id="defendCount">
+                                0매
+                            </span>
+                        </div>
+                        <div>
+                            <span>
+                                5위 점프권
+                            </span>
+                            <button onclick="buyItem('five',2000)">2000</button>
+                            <span id="fiveCount">
+                                0매
+                            </span>
+                        </div>
+                        <div id="unlockQte">
+                            <span>
+                                고오급 강화
+                            </span>
+                            <button onclick="buyItem('unlockQte',10000)">10000</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary">Save changes</button>
+                </div>
             </div>
         </div>
     </div>
@@ -91,44 +144,48 @@
             }
         }
         const getPercentage = () => Math.floor(Math.random() * 100);
+        const inhance = () => {
+            if(curImg > 0){
+                curImg -= 1;
+            }
+            setContext(curImg);
+        }
+        const reverseInhance = () => {
+            if (curImg < 9) {
+                curImg += 1;
+            }
+            setContext(curImg);
+
+            curCheeze += (9-curImg)*100;
+            setCheeze();
+        }
         const setRandom = () => {
             let isShow = qteBar.classList.contains("show");
             if(isShow) {
                 let half = qte.offsetWidth / 2;
                 if(boxLeft > half) { // 바가 오른쪽
                     if(boxRight > half/2) {
-                        if(curImg > 0){
-                            curImg -= 1;
-                        }
-                        setContext(curImg);
+                        inhance();
                         return;
                     }
                     else if(boxRight > half/4) {
                         console.log("yellow");
                     }
                     else{
-                        if (curImg < 9) {
-                            curImg += 1;
-                        }
-                        setContext(curImg);
+                        reverseInhance();
                         return;
                     }
                 }
                 else { // 바가 왼쪽
                     if(boxLeft > half/2) {
-                        if(curImg > 0){
-                            curImg -= 1;
-                        }
-                        setContext(curImg);
+                        inhance();
                         return;
                     }
                     else if(boxLeft > half/4) {
                         console.log("yellow");
                     }
                     else{
-                        if (curImg < 9) {
-                            curImg += 1;
-                        }
+                        reverseInhance();
                         setContext(curImg);
                         return;
                     }
@@ -137,17 +194,14 @@
             const perc = percentages[curImg];
             let getPerc = getPercentage();
             if (getPerc <= perc && curImg > 0) {
-                if(curImg > 0){
-                    curImg -= 1;
-                }
+                inhance();
             }
             else {
                 getPerc = getPercentage();
-                if (getPerc <= 50 && curImg < 9) {
-                    curImg += 1;
+                if (getPerc <= 50) {
+                    reverseInhance();
                 }
             }
-            setContext(curImg);
         }
         const reset = () => {
             localStorage.clear();
@@ -159,9 +213,25 @@
             if (localStorage.getItem("best") == null) {
                 localStorage.setItem("best", curImg);
             }
+            if(localStorage.getItem("cheeze") == null) {
+                localStorage.setItem("cheeze", curCheeze);
+            }
+            else{
+                curCheeze = parseInt(localStorage.getItem("cheeze"));
+            }
+            setCheeze();
             setContext(curImg);
+            if(localStorage.getItem("defend") != null){
+                defendCount.innerHTML = `${localStorage.getItem("defend")}매`;
+            }
+            if(localStorage.getItem("five") != null){
+                fiveCount.innerHTML = `${localStorage.getItem("five")}매`;
+            }
+            if(localStorage.getItem("unlockQte") != null) {
+                document.getElementById("unlockQte").classList.add("visually-hidden");
+                document.getElementById("openQte").classList.remove("disabled");
+            }
         }
-        init();
         const qteBar = document.getElementById("qteBar");
         const qte= document.getElementById("qte");
         const box = document.getElementById("box");
@@ -189,6 +259,38 @@
             }
             setTimeout(moveBox, 1);
         };
+        var curCheeze = 0;
+        const cheeze = document.getElementById("cheeze");
+        const setCheeze = ()=>{
+            cheeze.innerText = `현재 치즈: ${curCheeze}`;
+            localStorage.setItem("cheeze", curCheeze);
+        }
+        const buyItem = (item, price) => {
+            if(curCheeze < price) return;
+            let count = parseInt(localStorage.getItem(item));
+            if(isNaN(count)){
+                localStorage.setItem(item, 1);
+                count = 0;
+            }
+            else{
+                localStorage.setItem(item,  count + 1);
+            }
+            if(item == "defend"){
+                defendCount.innerHTML = `${count+1}매`;
+            }
+            if(item == "five"){
+                fiveCount.innerHTML = `${count+1}매`;
+            }
+            if(item == "unlockQte") {
+                document.getElementById("unlockQte").classList.add("visually-hidden");
+                document.getElementById("openQte").classList.remove("disabled");
+            }
+            curCheeze -= price;
+            setCheeze();
+        }
+        const defendCount = document.getElementById("defendCount");
+        const fiveCount = document.getElementById("fiveCount");
+        init();
         moveBox();
     </script>
 </body>

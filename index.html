@@ -46,22 +46,48 @@
                 <div id="perc" class="align-middle"></div>
                 <div id="revPerc" class="align-middle"></div>
                 <div>
-                    <button id="openQte" class="btn btn-primary disabled" type="button" data-bs-toggle="collapse" data-bs-target="#qteBar"
-                    aria-expanded="false" aria-controls="qteBar">
-                    할 수 있나?
-                    </button>
+                    <button id="openQte" class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#qteBar"
+                        aria-expanded="false" aria-controls="qteBar">할 수 있나?</button>
+                    <button id="openItem" class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#inventory"
+                        aria-expanded="false" aria-controls="inventory">아이템 사용</button>
                 </div>
-                <div class="collapse" id="qteBar">
-                    강화 또는 박살
-                    <div id="qte" class="w-100 m-2" style="position: relative; height: 50px;">
-                        <div class="w-100 h-100" style="background-color: red;">
-                            <div class="w-75 h-100 mx-auto" style="background-color: yellow;">
-                                <div class="w-50 h-100 mx-auto" style="background-color: green;">
-                                    <div id="box"></div>
+                
+                <div id="myGroup">
+                
+                    <div >
+                        <div class="collapse multi-collapse" id="qteBar" data-bs-parent="#myGroup">
+                            강화 또는 박살
+                            <div id="qte" class="w-100 m-2" style="position: relative; height: 50px;">
+                                <div class="w-100 h-100" style="background-color: red;">
+                                    <div class="w-75 h-100 mx-auto" style="background-color: yellow;">
+                                        <div class="w-50 h-100 mx-auto" style="background-color: green;">
+                                            <div id="box"></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                
+                    <div >
+                        <div class="collapse multi-collapse" id="inventory" data-bs-parent="#myGroup">
+                            <div id="buiedItems">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="defendSwitch" disabled>
+                                    <label class="form-check-label" for="defendSwitch">
+                                        방어권: <span id="defendCount">0매</span>
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch visually-hidden">
+                                    <input class="form-check-input" type="checkbox" id="fiveSwitch" disabled>
+                                    <label class="form-check-label" for="fiveSwitch">
+                                        5위 점프권: <span id="fiveCount"> 0매 </span>
+                                    </label>
+                                </div>                                
+                            </div>
+                        </div>
+                    </div>
+                
                 </div>
                 
                 <button class="btn btn-success" onclick="setRandom()">강화</button>
@@ -85,18 +111,12 @@
                                 하락 방어권
                             </span>
                             <button onclick="buyItem('defend',1000)">1000</button>
-                            <span id="defendCount">
-                                0매
-                            </span>
                         </div>
                         <div>
                             <span>
                                 5위 점프권
                             </span>
                             <button onclick="buyItem('five',2000)">2000</button>
-                            <span id="fiveCount">
-                                0매
-                            </span>
                         </div>
                         <div id="unlockQte">
                             <span>
@@ -199,7 +219,18 @@
             else {
                 getPerc = getPercentage();
                 if (getPerc <= 50) {
-                    reverseInhance();
+                    let curCount = parseInt(localStorage.getItem("defend"));
+                    if(defendSwitch.checked && curCount > 0) {
+                        curCount -= 1;
+                        localStorage.setItem("defend", curCount);
+                        defendCount.innerText = `${curCount}매`;
+                        if(curCount <= 0) {
+                            defendSwitch.disabled = true;
+                        }
+                    }
+                    else{
+                        reverseInhance();
+                    }
                 }
             }
         }
@@ -222,14 +253,22 @@
             setCheeze();
             setContext(curImg);
             if(localStorage.getItem("defend") != null){
-                defendCount.innerHTML = `${localStorage.getItem("defend")}매`;
+                defendCount.innerText = `${localStorage.getItem("defend")}매`;
+                defendSwitch.disabled = parseInt(localStorage.getItem("defend")) <= 0;
             }
             if(localStorage.getItem("five") != null){
-                fiveCount.innerHTML = `${localStorage.getItem("five")}매`;
+                fiveCount.innerText = `${localStorage.getItem("five")}매`;
+                fiveSwitch.disabled = parseInt(localStorage.getItem("five")) <= 0;
             }
             if(localStorage.getItem("unlockQte") != null) {
                 document.getElementById("unlockQte").classList.add("visually-hidden");
                 document.getElementById("openQte").classList.remove("disabled");
+                document.getElementById("openQte").innerText = "할 수 있나?"
+            }
+            else {
+                if(!document.getElementById("openQte").classList.contains("disabled"))
+                    document.getElementById("openQte").classList.add("disabled");
+                document.getElementById("openQte").innerText = "아직..."
             }
         }
         const qteBar = document.getElementById("qteBar");
@@ -276,14 +315,17 @@
                 localStorage.setItem(item,  count + 1);
             }
             if(item == "defend"){
-                defendCount.innerHTML = `${count+1}매`;
+                defendCount.innerText = `${count+1}매`;
+                defendSwitch.disabled = false;
             }
             if(item == "five"){
-                fiveCount.innerHTML = `${count+1}매`;
+                fiveCount.innerText = `${count+1}매`;
+                fiveSwitch.disabled = false;
             }
             if(item == "unlockQte") {
                 document.getElementById("unlockQte").classList.add("visually-hidden");
                 document.getElementById("openQte").classList.remove("disabled");
+                document.getElementById("openQte").innerText = "할 수 있나?"
             }
             curCheeze -= price;
             setCheeze();

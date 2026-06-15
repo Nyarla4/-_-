@@ -7,6 +7,22 @@
     <title>네즈밍 강화하기</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <style>
+        @keyframes move-right {
+            0% { left: 25px; }
+            100% { left: calc(100% - 25px); }
+        }
+        @keyframes move-left {
+            0% { left: calc(100% - 50px); }
+            100% { left: 25px; }
+        }
+        #box {
+            width: 25px;
+            height: 50px;
+            background-color: black;
+            position: absolute;
+        }
+    </style>
 </head>
 
 <body class="text-center align-middle">
@@ -20,6 +36,9 @@
                 <div id="text" class="align-middle"></div>
                 <div id="perc" class="align-middle"></div>
                 <div id="revPerc" class="align-middle"></div>
+                <div id="qte" class="w-100 h-25">
+                    <div id="box"></div>
+                </div>
                 <button class="btn btn-success" onclick="setRandom()">강화</button>
                 <button class="btn btn-danger m-1" onclick="reset()">초기화</button>
             </div>
@@ -30,11 +49,9 @@
         const images = ["./img/01_마요.png", "./img/02_바오밥나무.png", "./img/03_볼드의대형해머.png", "./img/04_처형자의대검.png", "./img/05_클레이모어.png", "./img/06_바스타드소드.png", "./img/07_야구빠따.png", "./img/08_커터칼.png", "./img/09_눈썹칼.png", "./img/10_이쑤시개.png"];
         const names = ["미도미도 마요", "바오밥나무 네즈밍", "볼드의 대형 해머 네즈밍", "처형자의 대검 네즈밍", "클레이모어 네즈밍", "바스타드 소드 네즈밍", "야구빠따 네즈밍", "커터칼 네즈밍", "눈썹칼 네즈밍", "이쑤시개 네즈밍"];
         const percentages = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]
-        //const revPercentages = [90, 80, 70, 60, 50, 40, 30, 20, 10, 0]
         const curImage = document.getElementById("image");
         const curText = document.getElementById("text");
         const curPerc = document.getElementById("perc");
-        //const curRePerc = document.getElementById("revPerc");
         const record = document.getElementById("rec");
         const setImage = (num) => {
             curImage.src = images[num];
@@ -43,7 +60,6 @@
             setImage(num);
             curText.innerText = `${curImg + 1}위 ${names[num]}`;
             curPerc.innerText = "강화확률: " + percentages[curImg] + "%";
-            //curRePerc.innerText = revPercentages[curImg] > 0 ? "약화확률: " + revPercentages[curImg] + "%" : "";
             const best = Math.min(curImg, localStorage.getItem("best"));
             localStorage.setItem("best", best);
             record.innerText = `최고 기록: ${best + 1}위`;
@@ -60,7 +76,6 @@
         const getPercentage = () => Math.floor(Math.random() * 100);
         const setRandom = () => {
             const perc = percentages[curImg];
-            //const revPerc = revPercentages[curImg];
             let getPerc = getPercentage();
             if (getPerc <= perc && curImg > 0) {
                 curImg -= 1;
@@ -86,6 +101,33 @@
             setContext(curImg);
         }
         init();
+        const qte= document.getElementById("qte");
+        const box = document.getElementById("box");
+        var direction = 0;
+        const moveBox = () => {
+            if(box.style.animation == "") {
+                box.style.animation = "move-right 2s ease-in-out infinite";
+                direction = 1;
+            }
+            let boxLeft = parseInt(window.getComputedStyle(box).getPropertyValue('left'));
+            let boxRight = parseInt(window.getComputedStyle(box).getPropertyValue('right'));
+            let boxWidth = box.offsetWidth;
+            console.log(boxRight);
+            if(direction == 1) {
+                if(boxRight <= boxWidth) {
+                    box.style.animation = "move-left 2s ease-in-out infinite";
+                    direction = -1;
+                }
+            }
+            if(direction == -1) {
+                if(boxLeft <= boxWidth) {
+                    box.style.animation = "move-right 2s ease-in-out infinite";
+                    direction = 1;
+                }
+            }
+            setTimeout(moveBox, 1);
+        };
+        moveBox();
     </script>
 </body>
 

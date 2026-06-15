@@ -147,240 +147,306 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
     <script>
-        var curImg = 9;
-        const images = ["./img/01_마요.png", "./img/02_바오밥나무.png", "./img/03_볼드의대형해머.png", "./img/04_처형자의대검.png", "./img/05_클레이모어.png", "./img/06_바스타드소드.png", "./img/07_야구빠따.png", "./img/08_커터칼.png", "./img/09_눈썹칼.png", "./img/10_이쑤시개.png"];
-        const names = ["미도미도 마요", "바오밥나무 네즈밍", "볼드의 대형 해머 네즈밍", "처형자의 대검 네즈밍", "클레이모어 네즈밍", "바스타드 소드 네즈밍", "야구빠따 네즈밍", "커터칼 네즈밍", "눈썹칼 네즈밍", "이쑤시개 네즈밍"];
-        const percentages = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]
-        const curImage = document.getElementById("image");
-        const curText = document.getElementById("text");
-        const curPerc = document.getElementById("perc");
-        const record = document.getElementById("rec");
-        const setImage = (num) => {
-            curImage.src = images[num];
+        // ─────────────────────────────────────────────
+        // 1. 상수 / 데이터 테이블
+        // ─────────────────────────────────────────────
+        const DATA = [
+            { image: "./img/01_마요.png",          name: "미도미도 마요",            percentage: 0  },
+            { image: "./img/02_바오밥나무.png",    name: "바오밥나무 네즈밍",        percentage: 10 },
+            { image: "./img/03_볼드의대형해머.png",name: "볼드의 대형 해머 네즈밍",  percentage: 20 },
+            { image: "./img/04_처형자의대검.png",  name: "처형자의 대검 네즈밍",     percentage: 30 },
+            { image: "./img/05_클레이모어.png",    name: "클레이모어 네즈밍",        percentage: 40 },
+            { image: "./img/06_바스타드소드.png",  name: "바스타드 소드 네즈밍",     percentage: 50 },
+            { image: "./img/07_야구빠따.png",      name: "야구빠따 네즈밍",          percentage: 60 },
+            { image: "./img/08_커터칼.png",        name: "커터칼 네즈밍",            percentage: 70 },
+            { image: "./img/09_눈썹칼.png",        name: "눈썹칼 네즈밍",            percentage: 80 },
+            { image: "./img/10_이쑤시개.png",      name: "이쑤시개 네즈밍",          percentage: 90 },
+        ];
+
+        const ENHANCE = {
+            FAIL_DROP_RATE:   50, // 실패 시 하락 확률 (%)
+            DROP_BREAK_RATE:  50, // 하락 시 박살 확률 (%)
+            MAX_RANK:          9, // 최저 등급 인덱스 (숫자 클수록 약함)
+        };
+
+        // ─────────────────────────────────────────────
+        // 2. 게임 상태 (단일 객체)
+        // ─────────────────────────────────────────────
+        const state = {
+            rank:   9, // 현재 랭크 인덱스 (0 = 최고, 9 = 최저)
+            cheeze: 0,
+            broken: 0,
+        };
+
+        // ─────────────────────────────────────────────
+        // 3. localStorage 유틸
+        // ─────────────────────────────────────────────
+        const Store = {
+            get:    (key, fallback = 0) => {
+                const val = localStorage.getItem(key);
+                return val === null ? fallback : parseInt(val, 10);
+            },
+            set:    (key, val) => localStorage.setItem(key, String(val)),
+            has:    (key)      => localStorage.getItem(key) !== null,
+            clear:  ()         => localStorage.clear(),
+        };
+
+        // ─────────────────────────────────────────────
+        // 4. DOM 캐싱
+        // ─────────────────────────────────────────────
+        const DOM = {
+            image:       document.getElementById("image"),
+            text:        document.getElementById("text"),
+            perc:        document.getElementById("perc"),
+            record:      document.getElementById("rec"),
+            logged:      document.getElementById("logged"),
+            cheeze:      document.getElementById("cheeze"),
+            broken:      document.getElementById("broken"),
+            defendCount: document.getElementById("defendCount"),
+            fiveCount:   document.getElementById("fiveCount"),
+            defendSwitch:document.getElementById("defendSwitch"),
+            fiveSwitch:  document.getElementById("fiveSwitch"),
+            unlockQte:   document.getElementById("unlockQte"),
+            openQte:     document.getElementById("openQte"),
+            qteBar:      document.getElementById("qteBar"),
+            qte:         document.getElementById("qte"),
+            box:         document.getElementById("box"),
+        };
+
+        // ─────────────────────────────────────────────
+        // 5. UI 렌더링
+        // ─────────────────────────────────────────────
+        const render = {
+            context() {
+                const { rank } = state;
+                const item = DATA[rank];
+                DOM.image.src      = item.image;
+                DOM.text.innerText = `${rank + 1}위 ${item.name}`;
+                DOM.perc.innerText =
+                    `강화확률: ${item.percentage}%\n실패시 50%확률로 하락\n하락시 50%확률로 박살`;
+
+                const best = Math.min(rank, Store.get("best", rank));
+                Store.set("best", best);
+                DOM.record.innerText = `최고 기록: ${best + 1}위`;
+
+                render.log(best);
+            },
+
+            // 갤러리 로그: 최고 기록 이후 달성한 등급들만 표시
+            log(best) {
+                DOM.logged.innerHTML = Array.from(
+                    { length: ENHANCE.MAX_RANK - best + 1 },
+                    (_, i) => {
+                        const idx = best + i;
+                        return `<a onclick="render.image(${idx})">${idx + 1}</a> `;
+                    }
+                ).join("");
+            },
+
+            // 이미지만 단독 교체 (갤러리 클릭용)
+            image(idx) {
+                DOM.image.src = DATA[idx].image;
+            },
+
+            cheeze() {
+                DOM.cheeze.innerText = `현재 치즈: ${state.cheeze}`;
+                Store.set("cheeze", state.cheeze);
+            },
+
+            broken() {
+                DOM.broken.innerText = `박살난 네즈밍: ${state.broken}`;
+                Store.set("broken", state.broken);
+            },
+
+            // 아이템 UI 공통 업데이트
+            item(key, countEl, switchEl) {
+                const count = Store.get(key, 0);
+                countEl.innerText   = `${count}매`;
+                switchEl.disabled   = count <= 0;
+            },
+
+            qteUnlock(unlocked) {
+                DOM.unlockQte.classList.toggle("visually-hidden", unlocked);
+                DOM.openQte.classList.toggle("disabled", !unlocked);
+                DOM.openQte.innerText = unlocked ? "할 수 있나?" : "아직...";
+            },
+        };
+
+        // ─────────────────────────────────────────────
+        // 6. 강화 로직
+        // ─────────────────────────────────────────────
+        const rand = () => Math.floor(Math.random() * 100);
+
+        /** 강화 성공: 랭크 상승 (인덱스 감소) */
+        function enhance() {
+            if (state.rank > 0) state.rank -= 1;
+            render.context();
         }
-        const setContext = (num) => {
-            setImage(num);
-            curText.innerText = `${curImg + 1}위 ${names[num]}`;
-            curPerc.innerText = "강화확률: " + percentages[curImg] + "%\n실패시 50%확률로 하락\n하락시 50%확률로 박살";
-            const best = Math.min(curImg, localStorage.getItem("best"));
-            localStorage.setItem("best", best);
-            record.innerText = `최고 기록: ${best + 1}위`;
-            setLog(best);
-        }
-        const setLog = (num)=>{
-            const logDiv = document.getElementById("logged");
-            logDiv.innerHTML = "";
-            for (let idx = num; idx <= 9; idx++) {
-                logDiv.innerHTML += `<a onclick="setImage(${idx})">${idx+1}</a> `
-                
+
+        /** 강화 실패 처리: 하락 or 박살 */
+        function degradeOrBreak() {
+            if (rand() < ENHANCE.DROP_BREAK_RATE) {
+                // 박살
+                state.broken += ENHANCE.MAX_RANK - state.rank;
+                state.rank    = ENHANCE.MAX_RANK;
+                render.broken();
+            } else {
+                // 하락 → 치즈 보상
+                state.cheeze += (ENHANCE.MAX_RANK - state.rank) * 100;
+                render.cheeze();
+                if (state.rank < ENHANCE.MAX_RANK) state.rank += 1;
             }
+            render.context();
         }
-        const getPercentage = () => Math.floor(Math.random() * 100);
-        const inhance = () => {
-            if(curImg > 0){
-                curImg -= 1;
-            }
-            setContext(curImg);
+
+        /** 하락 방어권 소비 시도. 성공 시 true 반환 */
+        function tryDefend() {
+            if (!DOM.defendSwitch.checked) return false;
+            const count = Store.get("defend", 0);
+            if (count <= 0) return false;
+
+            Store.set("defend", count - 1);
+            render.item("defend", DOM.defendCount, DOM.defendSwitch);
+            return true;
         }
-        const reverseInhance = () => {
-            let getPerc = getPercentage();
-            if (getPerc <= 50) {
-                curBroken += (9-curImg);
-                setBroken();
-                curImg = 9;
-                setContext(curImg);
+
+        /** QTE 결과에 따라 강화/실패 판정 */
+        function resolveQte() {
+            const half     = DOM.qte.offsetWidth / 2;
+            const rect     = DOM.box.getBoundingClientRect();
+            const qteRect  = DOM.qte.getBoundingClientRect();
+            const posLeft  = rect.left  - qteRect.left;
+            const posRight = qteRect.right - rect.right;
+
+            // 박스가 오른쪽 절반에 있으면 posRight 기준, 왼쪽 절반이면 posLeft 기준
+            const pos = posLeft > half ? posRight : posLeft;
+
+            if (pos > half / 2)       { enhance();       return true; }
+            if (pos > half / 4)       { /* yellow zone */ return true; }
+            /* red zone */              degradeOrBreak(); return true;
+        }
+
+        /** 강화 버튼 클릭 메인 핸들러 */
+        function setRandom() {
+            if (DOM.qteBar.classList.contains("show")) {
+                resolveQte();
                 return;
             }
-            curCheeze += (9-curImg)*100;
-            setCheeze();
-            if (curImg < 9) {
-                curImg += 1;
+
+            const perc = DATA[state.rank].percentage;
+            if (rand() < perc && state.rank > 0) {
+                enhance();
+                return;
             }
-            setContext(curImg);
-        }
-        const setRandom = () => {
-            let isShow = qteBar.classList.contains("show");
-            if(isShow) {
-                let half = qte.offsetWidth / 2;
-                if(boxLeft > half) { // 바가 오른쪽
-                    if(boxRight > half/2) {
-                        inhance();
-                        return;
-                    }
-                    else if(boxRight > half/4) {
-                        console.log("yellow");
-                    }
-                    else{
-                        reverseInhance();
-                        return;
-                    }
-                }
-                else { // 바가 왼쪽
-                    if(boxLeft > half/2) {
-                        inhance();
-                        return;
-                    }
-                    else if(boxLeft > half/4) {
-                        console.log("yellow");
-                    }
-                    else{
-                        reverseInhance();
-                        setContext(curImg);
-                        return;
-                    }
-                }
-            }
-            const perc = percentages[curImg];
-            let getPerc = getPercentage();
-            if (getPerc <= perc && curImg > 0) {
-                inhance();
-            }
-            else {
-                getPerc = getPercentage();
-                if (getPerc <= 50) {
-                    let curCount = parseInt(localStorage.getItem("defend"));
-                    if(defendSwitch.checked && curCount > 0) {
-                        curCount -= 1;
-                        localStorage.setItem("defend", curCount);
-                        defendCount.innerText = `${curCount}매`;
-                        if(curCount <= 0) {
-                            defendSwitch.disabled = true;
-                        }
-                    }
-                    else{
-                        reverseInhance();
-                    }
-                }
+
+            // 실패 — 하락 여부 판정
+            if (rand() < ENHANCE.FAIL_DROP_RATE) {
+                if (!tryDefend()) degradeOrBreak();
             }
         }
-        const reset = () => {
-            localStorage.clear();
-            curImg = 9;
-            localStorage.setItem("best", curImg);
-            setContext(curImg);
+
+        // ─────────────────────────────────────────────
+        // 7. 아이템
+        // ─────────────────────────────────────────────
+        function buyItem(key, price) {
+            if (state.cheeze < price) return;
+
+            const count = Store.get(key, 0);
+            Store.set(key, count + 1);
+            state.cheeze -= price;
+            render.cheeze();
+
+            if (key === "defend") render.item("defend", DOM.defendCount, DOM.defendSwitch);
+            if (key === "five")   render.item("five",   DOM.fiveCount,   DOM.fiveSwitch);
+            if (key === "unlockQte") render.qteUnlock(true);
         }
-        const init = () => {
-            if (localStorage.getItem("best") == null) {
-                localStorage.setItem("best", curImg);
-            }
-            if(localStorage.getItem("cheeze") == null) {
-                localStorage.setItem("cheeze", curCheeze);
-            }
-            else{
-                curCheeze = parseInt(localStorage.getItem("cheeze"));
-            }
-            if(localStorage.getItem("broken") == null) {
-                localStorage.setItem("broken", curBroken);
-            }
-            else{
-                curBroken = parseInt(localStorage.getItem("broken"));
-            }
-            setCheeze();
-            setBroken();
-            setContext(curImg);
-            if(localStorage.getItem("defend") != null){
-                defendCount.innerText = `${localStorage.getItem("defend")}매`;
-                defendSwitch.disabled = parseInt(localStorage.getItem("defend")) <= 0;
-            }
-            if(localStorage.getItem("five") != null){
-                fiveCount.innerText = `${localStorage.getItem("five")}매`;
-                fiveSwitch.disabled = parseInt(localStorage.getItem("five")) <= 0;
-            }
-            if(localStorage.getItem("unlockQte") != null) {
-                document.getElementById("unlockQte").classList.add("visually-hidden");
-                document.getElementById("openQte").classList.remove("disabled");
-                document.getElementById("openQte").innerText = "할 수 있나?"
-            }
-            else {
-                if(!document.getElementById("openQte").classList.contains("disabled"))
-                    document.getElementById("openQte").classList.add("disabled");
-                document.getElementById("openQte").innerText = "아직..."
-            }
+
+        function jumpFive() {
+            if (!confirm("사용시 즉시 소모됩니다. 사용하시겠습니까?")) return;
+
+            const count = Store.get("five", 0);
+            if (count <= 0) return;
+            if (state.rank < 4 && !confirm("현재 네즈밍이 5위보다 높습니다. 사용하시겠습니까?")) return;
+
+            Store.set("five", count - 1);
+            render.item("five", DOM.fiveCount, DOM.fiveSwitch);
+            state.rank = 4;
+            render.context();
         }
-        const qteBar = document.getElementById("qteBar");
-        const qte= document.getElementById("qte");
-        const box = document.getElementById("box");
-        let boxLeft = parseInt(window.getComputedStyle(box).getPropertyValue('left'));
-        let boxRight = parseInt(window.getComputedStyle(box).getPropertyValue('right'));
-        var direction = 0;
-        const moveBox = () => {
-            if(direction == 0) {
-                box.style.animation = "move-right 2s ease-in-out infinite";
+
+        // ─────────────────────────────────────────────
+        // 8. QTE 박스 애니메이션 (requestAnimationFrame)
+        // ─────────────────────────────────────────────
+        let animId    = null;
+        let direction = 1; // 1 = 오른쪽, -1 = 왼쪽
+
+        function moveBox() {
+            const rect    = DOM.box.getBoundingClientRect();
+            const parent  = DOM.qte.getBoundingClientRect();
+            const atRight = rect.right  >= parent.right  - 1;
+            const atLeft  = rect.left   <= parent.left   + 1;
+
+            if (atRight && direction ===  1) {
+                DOM.box.style.animation = "move-left 2s ease-in-out infinite";
+                direction = -1;
+            } else if (atLeft && direction === -1) {
+                DOM.box.style.animation = "move-right 2s ease-in-out infinite";
                 direction = 1;
             }
-            boxLeft = parseInt(window.getComputedStyle(box).getPropertyValue('left'));
-            boxRight = parseInt(window.getComputedStyle(box).getPropertyValue('right'));
-            if(direction == 1) {
-                if(boxRight <= 1) {
-                    box.style.animation = "move-left 2s ease-in-out infinite";
-                    direction = -1;
-                }
-            }
-            if(direction == -1) {
-                if(boxLeft <= 1) {
-                    box.style.animation = "move-right 2s ease-in-out infinite";
-                    direction = 1;
-                }
-            }
-            setTimeout(moveBox, 1);
-        };
-        var curCheeze = 0;
-        const cheeze = document.getElementById("cheeze");
-        const setCheeze = ()=>{
-            cheeze.innerText = `현재 치즈: ${curCheeze}`;
-            localStorage.setItem("cheeze", curCheeze);
+
+            animId = requestAnimationFrame(moveBox);
         }
-        const broken = document.getElementById("broken");
-        var curBroken = 0;
-        const setBroken = ()=>{
-            broken.innerText = `박살난 네즈밍: ${curBroken}`;
-            localStorage.setItem("broken", curBroken);
+
+        function startMoveBox() {
+            if (animId !== null) return; // 중복 실행 방지
+            DOM.box.style.animation = "move-right 2s ease-in-out infinite";
+            direction = 1;
+            animId = requestAnimationFrame(moveBox);
         }
-        const buyItem = (item, price) => {
-            if(curCheeze < price) return;
-            let count = parseInt(localStorage.getItem(item));
-            if(isNaN(count)){
-                localStorage.setItem(item, 1);
-                count = 0;
-            }
-            else{
-                localStorage.setItem(item,  count + 1);
-            }
-            if(item == "defend"){
-                defendCount.innerText = `${count+1}매`;
-                defendSwitch.disabled = false;
-            }
-            if(item == "five"){
-                fiveCount.innerText = `${count+1}매`;
-                fiveSwitch.disabled = false;
-            }
-            if(item == "unlockQte") {
-                document.getElementById("unlockQte").classList.add("visually-hidden");
-                document.getElementById("openQte").classList.remove("disabled");
-                document.getElementById("openQte").innerText = "할 수 있나?"
-            }
-            curCheeze -= price;
-            setCheeze();
+
+        // ─────────────────────────────────────────────
+        // 9. 초기화 / 리셋
+        // ─────────────────────────────────────────────
+        function init() {
+            // best 기록
+            if (!Store.has("best")) Store.set("best", state.rank);
+
+            // 수치 상태 복원
+            state.cheeze = Store.has("cheeze") ? Store.get("cheeze") : 0;
+            state.broken = Store.has("broken") ? Store.get("broken") : 0;
+            Store.set("cheeze", state.cheeze);
+            Store.set("broken", state.broken);
+
+            // 아이템 UI 복원
+            render.item("defend", DOM.defendCount, DOM.defendSwitch);
+            render.item("five",   DOM.fiveCount,   DOM.fiveSwitch);
+
+            // QTE 해금 상태 복원
+            render.qteUnlock(Store.has("unlockQte"));
+
+            // 화면 갱신
+            render.cheeze();
+            render.broken();
+            render.context();
+
+            startMoveBox();
         }
-        const defendCount = document.getElementById("defendCount");
-        const fiveCount = document.getElementById("fiveCount");
-        const jumpFive = () => {
-            if(!confirm("사용시 즉시 소모됩니다. 사용하시겠습니까?")) return;
-            let curCount = parseInt(localStorage.getItem("five"));
-            if(isNaN(curCount) || curCount <= 0) return;
-            if(curImg<4){
-                if(!confirm("현재 네즈밍이 5위보다 높습니다. 사용하시겠습니까?")) return;
-            }
-            //
-            curCount -= 1;
-            localStorage.setItem("five", curCount);
-            fiveCount.innerText = `${curCount}매`;
-            fiveSwitch.disabled = curCount<=0;
-            curImg = 4;
-            setContext(curImg);
+
+        function reset() {
+            Store.clear();
+            state.rank   = ENHANCE.MAX_RANK;
+            state.cheeze = 0;
+            state.broken = 0;
+            Store.set("best", state.rank);
+            render.cheeze();
+            render.broken();
+            render.context();
         }
+
+        // ─────────────────────────────────────────────
+        // 10. 진입점
+        // ─────────────────────────────────────────────
         init();
-        moveBox();
     </script>
 </body>
 

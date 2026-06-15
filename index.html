@@ -78,11 +78,11 @@
                                         방어권: <span id="defendCount">0매</span>
                                     </label>
                                 </div>
-                                <div class="form-check form-switch visually-hidden">
-                                    <input class="form-check-input" type="checkbox" id="fiveSwitch" disabled>
-                                    <label class="form-check-label" for="fiveSwitch">
+                                <div>
+                                    <label>
                                         5위 점프권: <span id="fiveCount"> 0매 </span>
                                     </label>
+                                    <button class="btn btn-primary" id="fiveSwitch" disabled onclick="jumpFive()">사용</button>
                                 </div>                                
                             </div>
                         </div>
@@ -332,6 +332,21 @@
         }
         const defendCount = document.getElementById("defendCount");
         const fiveCount = document.getElementById("fiveCount");
+        const jumpFive = () => {
+            if(!confirm("사용시 즉시 소모됩니다. 사용하시겠습니까?")) return;
+            let curCount = parseInt(localStorage.getItem("five"));
+            if(isNaN(curCount) || curCount <= 0) return;
+            if(curImg<4){
+                if(!confirm("현재 네즈밍이 5위보다 높습니다. 사용하시겠습니까?")) return;
+            }
+            //
+            curCount -= 1;
+            localStorage.setItem("five", curCount);
+            fiveCount.innerText = `${curCount}매`;
+            fiveSwitch.disabled = curCount<=0;
+            curImg = 4;
+            setContext(curImg);
+        }
         init();
         moveBox();
     </script>

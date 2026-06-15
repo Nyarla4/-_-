@@ -53,7 +53,6 @@
                 </div>
                 
                 <div id="myGroup">
-                
                     <div >
                         <div class="collapse multi-collapse" id="qteBar" data-bs-parent="#myGroup">
                             강화 또는 박살
@@ -67,8 +66,7 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                
+                    </div>                
                     <div >
                         <div class="collapse multi-collapse" id="inventory" data-bs-parent="#myGroup">
                             <div id="buiedItems">
@@ -103,8 +101,22 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <span>강화 실패시 치즈 획득</span>
-                    <div id="cheeze">cheeze</div>
+                    <div class="row">
+                        <div class="col">
+                            하락시 치즈 획득
+                        </div>
+                        <div class="col">
+                            박살시 네즈밍 조각 획득
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col" id="cheeze">
+                            cheeze
+                        </div>
+                        <div class="col" id="broken">
+                            broken
+                        </div>
+                    </div>
                     <div>
                         <div>
                             <span>
@@ -149,7 +161,7 @@
         const setContext = (num) => {
             setImage(num);
             curText.innerText = `${curImg + 1}위 ${names[num]}`;
-            curPerc.innerText = "강화확률: " + percentages[curImg] + "%";
+            curPerc.innerText = "강화확률: " + percentages[curImg] + "%\n실패시 50%확률로 하락\n하락시 50%확률로 박살";
             const best = Math.min(curImg, localStorage.getItem("best"));
             localStorage.setItem("best", best);
             record.innerText = `최고 기록: ${best + 1}위`;
@@ -171,13 +183,20 @@
             setContext(curImg);
         }
         const reverseInhance = () => {
+            let getPerc = getPercentage();
+            if (getPerc <= 50) {
+                curBroken += (9-curImg);
+                setBroken();
+                curImg = 9;
+                setContext(curImg);
+                return;
+            }
+            curCheeze += (9-curImg)*100;
+            setCheeze();
             if (curImg < 9) {
                 curImg += 1;
             }
             setContext(curImg);
-
-            curCheeze += (9-curImg)*100;
-            setCheeze();
         }
         const setRandom = () => {
             let isShow = qteBar.classList.contains("show");
@@ -250,7 +269,14 @@
             else{
                 curCheeze = parseInt(localStorage.getItem("cheeze"));
             }
+            if(localStorage.getItem("broken") == null) {
+                localStorage.setItem("broken", curBroken);
+            }
+            else{
+                curBroken = parseInt(localStorage.getItem("broken"));
+            }
             setCheeze();
+            setBroken();
             setContext(curImg);
             if(localStorage.getItem("defend") != null){
                 defendCount.innerText = `${localStorage.getItem("defend")}매`;
@@ -303,6 +329,12 @@
         const setCheeze = ()=>{
             cheeze.innerText = `현재 치즈: ${curCheeze}`;
             localStorage.setItem("cheeze", curCheeze);
+        }
+        const broken = document.getElementById("broken");
+        var curBroken = 0;
+        const setBroken = ()=>{
+            broken.innerText = `박살난 네즈밍: ${curBroken}`;
+            localStorage.setItem("broken", curBroken);
         }
         const buyItem = (item, price) => {
             if(curCheeze < price) return;

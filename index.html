@@ -36,13 +36,14 @@
                 <div id="text" class="align-middle"></div>
                 <div id="perc" class="align-middle"></div>
                 <div id="revPerc" class="align-middle"></div>
-                <p>
-                    <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExample"
-                        aria-expanded="false" aria-controls="collapseExample">
-                        할 수 있나?
+                <div>
+                    <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#qteBar"
+                    aria-expanded="false" aria-controls="qteBar">
+                    할 수 있나?
                     </button>
-                </p>
-                <div class="collapse" id="collapseExample">
+                </div>
+                <div class="collapse" id="qteBar">
+                    강화 또는 박살
                     <div id="qte" class="w-100 m-2" style="position: relative; height: 50px;">
                         <div class="w-100 h-100" style="background-color: red;">
                             <div class="w-75 h-100 mx-auto" style="background-color: yellow;">
@@ -91,10 +92,54 @@
         }
         const getPercentage = () => Math.floor(Math.random() * 100);
         const setRandom = () => {
+            let isShow = qteBar.classList.contains("show");
+            if(isShow) {
+                let half = qte.offsetWidth / 2;
+                if(boxLeft > half) { // 바가 오른쪽
+                    if(boxRight > half/2) {
+                        if(curImg > 0){
+                            curImg -= 1;
+                        }
+                        setContext(curImg);
+                        return;
+                    }
+                    else if(boxRight > half/4) {
+                        console.log("yellow");
+                    }
+                    else{
+                        if (curImg < 9) {
+                            curImg += 1;
+                        }
+                        setContext(curImg);
+                        return;
+                    }
+                }
+                else { // 바가 왼쪽
+                    if(boxLeft > half/2) {
+                        if(curImg > 0){
+                            curImg -= 1;
+                        }
+                        setContext(curImg);
+                        return;
+                    }
+                    else if(boxLeft > half/4) {
+                        console.log("yellow");
+                    }
+                    else{
+                        if (curImg < 9) {
+                            curImg += 1;
+                        }
+                        setContext(curImg);
+                        return;
+                    }
+                }
+            }
             const perc = percentages[curImg];
             let getPerc = getPercentage();
             if (getPerc <= perc && curImg > 0) {
-                curImg -= 1;
+                if(curImg > 0){
+                    curImg -= 1;
+                }
             }
             else {
                 getPerc = getPercentage();
@@ -117,6 +162,7 @@
             setContext(curImg);
         }
         init();
+        const qteBar = document.getElementById("qteBar");
         const qte= document.getElementById("qte");
         const box = document.getElementById("box");
         let boxLeft = parseInt(window.getComputedStyle(box).getPropertyValue('left'));
